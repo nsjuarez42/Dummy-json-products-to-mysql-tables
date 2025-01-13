@@ -20,14 +20,10 @@ with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as sock:
             if not data: break
             chunks+=data
         
-
         chunks = chunks.decode(encoding="utf-8").split("\r\n\r\n")
         headers,content = chunks[0],chunks[1]
 
-
-        print(headers)
         with open("./data.json","wt") as f:
             f.write(content)
-        print(content)
 
     
