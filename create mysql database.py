@@ -3,7 +3,7 @@ import mysql.connector
 import re
 
 #Fill with your own data
-cnx = mysql.connector.connect(user="",password="",host='',database="")
+cnx = mysql.connector.connect(user="root",password="root",host='127.0.0.1',database="products")
 
 cursor = cnx.cursor()
 
@@ -33,10 +33,10 @@ def create_table():
     review_table = """CREATE TABLE reviews(ID INTEGER PRIMARY KEY AUTO_INCREMENT,
     comment VARCHAR(120),
     date DATETIME,
-    rating INTEGER)
+    rating INTEGER,idproduct INTEGER,iduser INTEGER)
     """
 
-    image_table = "CREATE TABLE images(ID INTEGER PRIMARY KEY AUTO_INCREMENT, image VARCHAR(120))"
+    image_table = "CREATE TABLE images(ID INTEGER PRIMARY KEY AUTO_INCREMENT, image VARCHAR(120),idproduct INTEGER)"
 
     tag_table = "CREATE TABLE tags(ID INTEGER PRIMARY KEY AUTO_INCREMENT,name VARCHAR(40))"
 
@@ -44,25 +44,17 @@ def create_table():
 
     tag_product_table = "CREATE TABLE tagproduct(ID INTEGER PRIMARY KEY AUTO_INCREMENT,idtag INTEGER,idproduct INTEGER)"
 
-    image_product_table = "CREATE TABLE imageproduct(ID INTEGER PRIMARY KEY AUTO_INCREMENT,idimage INTEGER,idproduct INTEGER)"
-
-    review_user_table ="CREATE TABLE reviewuser(ID INTEGER PRIMARY KEY AUTO_INCREMENT,idreview INTEGER,iduser INTEGER)"
-
-    review_product_table = "CREATE TABLE reviewproduct(ID INTEGER PRIMARY KEY AUTO_INCREMENT,idreview INTEGER,idproduct INTEGER)"
-
     tables = [products_table,
             category_table,
             review_table,
             image_table,
             tag_table,
             user_table,
-            tag_product_table,
-            image_product_table,
-            review_user_table,
-            review_product_table]
+            tag_product_table,]
 
     for table in tables:
         cursor.execute(table)
+
 
 #Call this method the first time you execute the program to create the tables of the database
 create_table()
@@ -103,9 +95,8 @@ with open("./data.json","rt") as f:
         cursor.execute("INSERT INTO products VALUES({})".format(",".join(["%s" for i in p.keys()])),list(p.values()))
 
         for img in product["images"]:
-            cursor.execute("INSERT INTO images(image) VALUES(%s)",(img,))
+            cursor.execute("INSERT INTO images(image,idproduct) VALUES(%s,%s)",(img,product['id']))
             img_id= cursor.lastrowid
-            cursor.execute("INSERT INTO imageproduct(idimage,idproduct) VALUES(%s,%s)",(img_id,product['id']))
         for tag in product['tags']:
             foundTag = cursor.execute("SELECT * FROM tags WHERE name=%s",(tag,))
             cursor.fetchall()
@@ -115,10 +106,7 @@ with open("./data.json","rt") as f:
             cursor.execute("INSERT INTO tagproduct(idtag,idproduct) VALUES(%s,%s)",(tag_id,product['id']))
 
         for review in product["reviews"]:
-            cursor.execute("INSERT INTO reviews(rating,comment,date) VALUES(%s,%s,%s)",(review["rating"],
-                            review["comment"],
-                            re.sub(r'[.][0-9]*Z',""," ".join(review["date"].split("T")))))
-            review_id = cursor.lastrowid
+            
           
             username = review["reviewerName"].replace(" ","").lower()
             userFound = cursor.execute("SELECT * FROM users WHERE username=%s",(username,))
@@ -130,9 +118,9 @@ with open("./data.json","rt") as f:
             
             user_id = cursor.fetchall()[0][0]
 
-            cursor.execute("INSERT INTO reviewuser(idreview,iduser) VALUES(%s,%s)",(review_id,user_id))
-
-            cursor.execute("INSERT INTO reviewproduct(idreview,idproduct) VALUES(%s,%s)",(review_id,product['id']))
+            cursor.execute("INSERT INTO reviews(rating,comment,date,idproduct,iduser) VALUES(%s,%s,%s,%s,%s)",(review["rating"],
+                            review["comment"],
+                            re.sub(r'[.][0-9]*Z',""," ".join(review["date"].split("T"))),product['id'],user_id))
 
             cnx.commit()
 
