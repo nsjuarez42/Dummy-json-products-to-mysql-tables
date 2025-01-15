@@ -5,6 +5,12 @@ import re
 #Fill with your own data
 cnx = mysql.connector.connect(user="root",password="root",host='127.0.0.1',database="products")
 
+#TODO:
+#remove duplicates
+#unique categories
+#unique tags
+#unique users
+#unique images
 cursor = cnx.cursor()
 
 def create_table():
@@ -28,7 +34,7 @@ def create_table():
     idcategory INTEGER)
     """
 
-    category_table = "CREATE TABLE categories(ID INTEGER PRIMARY KEY AUTO_INCREMENT,name VARCHAR(80))"
+    category_table = "CREATE TABLE categories(ID INTEGER PRIMARY KEY AUTO_INCREMENT,name VARCHAR(80) UNIQUE)"
 
     review_table = """CREATE TABLE reviews(ID INTEGER PRIMARY KEY AUTO_INCREMENT,
     comment VARCHAR(120),
@@ -36,11 +42,11 @@ def create_table():
     rating INTEGER,idproduct INTEGER,iduser INTEGER)
     """
 
-    image_table = "CREATE TABLE images(ID INTEGER PRIMARY KEY AUTO_INCREMENT, image VARCHAR(120),idproduct INTEGER)"
+    image_table = "CREATE TABLE images(ID INTEGER PRIMARY KEY AUTO_INCREMENT, image VARCHAR(120) UNIQUE,idproduct INTEGER)"
 
-    tag_table = "CREATE TABLE tags(ID INTEGER PRIMARY KEY AUTO_INCREMENT,name VARCHAR(40))"
+    tag_table = "CREATE TABLE tags(ID INTEGER PRIMARY KEY AUTO_INCREMENT,name VARCHAR(40) UNIQUE)"
 
-    user_table = "CREATE TABLE users(ID INTEGER PRIMARY KEY AUTO_INCREMENT,mail VARCHAR(100),name VARCHAR(100),username VARCHAR(80),password VARCHAR(100))"
+    user_table = "CREATE TABLE users(ID INTEGER PRIMARY KEY AUTO_INCREMENT,mail VARCHAR(100) UNIQUE,name VARCHAR(100),username VARCHAR(80),password VARCHAR(100))"
 
     tag_product_table = "CREATE TABLE tagproduct(ID INTEGER PRIMARY KEY AUTO_INCREMENT,idtag INTEGER,idproduct INTEGER)"
 
@@ -83,8 +89,8 @@ with open("./data.json","rt") as f:
              "availabilityStatus":product['availabilityStatus'],
              "thumbnail":product["thumbnail"]}
         
-        categoryFound = cursor.execute("SELECT * FROM categories WHERE name=%s",(product['category'],))
-        cursor.fetchall()
+        cursor.execute("SELECT * FROM categories WHERE name=%s",(product['category'],))
+        categoryFound = cursor.fetchone()
         if not categoryFound:
             cursor.execute("INSERT INTO categories(name) VALUES(%s)",(product['category'],))
             print(cursor.fetchone())
@@ -98,19 +104,18 @@ with open("./data.json","rt") as f:
             cursor.execute("INSERT INTO images(image,idproduct) VALUES(%s,%s)",(img,product['id']))
             img_id= cursor.lastrowid
         for tag in product['tags']:
-            foundTag = cursor.execute("SELECT * FROM tags WHERE name=%s",(tag,))
-            cursor.fetchall()
+            cursor.execute("SELECT * FROM tags WHERE name=%s",(tag,))
+            foundTag = cursor.fetchone()
             if not foundTag:
                 cursor.execute("INSERT INTO tags(name) VALUES(%s)",(tag,))
             tag_id = cursor.lastrowid
             cursor.execute("INSERT INTO tagproduct(idtag,idproduct) VALUES(%s,%s)",(tag_id,product['id']))
 
         for review in product["reviews"]:
-            
           
             username = review["reviewerName"].replace(" ","").lower()
-            userFound = cursor.execute("SELECT * FROM users WHERE username=%s",(username,))
-            cursor.fetchall()
+            cursor.execute("SELECT * FROM users WHERE username=%s",(username,))
+            userFound = cursor.fetchone()
             if not userFound:
                 cursor.execute("INSERT INTO users(mail,password,username,name) VALUES(%s,%s,%s,%s)",(review['reviewerEmail'],username+"123",username,review["reviewerName"]))
             
